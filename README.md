@@ -1,14 +1,15 @@
-# Cypher Query Assistant MCP Server
+# Query Assistant MCP Server
 
-A Model Context Protocol (MCP) server that helps generate Cypher queries using semantic search over training examples. This server provides few-shot learning capabilities by finding similar questions and their corresponding Cypher queries to guide query generation.
+A Model Context Protocol (MCP) server that helps generate queries using semantic search over training examples. This server provides few-shot learning capabilities by finding similar questions and their corresponding queries to guide query generation for various query languages (Cypher, SPARQL, SQL, etc.).
 
 ## Features
 
 - **Semantic Search**: Uses OpenAI embeddings to find similar questions in your training dataset
-- **Few-Shot Learning**: Returns relevant examples to help generate accurate Cypher queries
-- **Training Data Management**: Add, list, and manage question-Cypher query pairs
+- **Few-Shot Learning**: Returns relevant examples to help generate accurate queries
+- **Training Data Management**: Add, list, and manage question-query pairs with duplicate detection
 - **Vector Storage**: Efficient similarity search using HNSW (Hierarchical Navigable Small World) algorithm
 - **Metadata Support**: Organize examples by domain, complexity, and tags
+- **Multi-Language Support**: Works with various query languages (Cypher, SPARQL, SQL, etc.)
 
 ## Installation
 
@@ -16,7 +17,7 @@ A Model Context Protocol (MCP) server that helps generate Cypher queries using s
 
 2. **Build the server**:
    ```bash
-   cd /Users/alkhalili/Documents/Cline/MCP/cypher-query-assistant
+   cd /Users/alkhalili/Documents/Cline/MCP/mcp-query-assistant
    npm install
    npm run build
    ```
@@ -29,9 +30,9 @@ A Model Context Protocol (MCP) server that helps generate Cypher queries using s
 
 4. **Server Configuration**: The server is already configured in your MCP settings as:
    ```json
-   "cypher-query-assistant": {
+   "query-assistant": {
      "command": "node",
-     "args": ["/Users/alkhalili/Documents/Cline/MCP/cypher-query-assistant/build/index.js"],
+     "args": ["/Users/alkhalili/Documents/Cline/MCP/mcp-query-assistant/build/index.js"],
      "env": {
        "OPENAI_API_KEY": "your_openai_api_key_here"
      },
@@ -43,7 +44,7 @@ A Model Context Protocol (MCP) server that helps generate Cypher queries using s
 ## Available Tools
 
 ### 1. `find_similar_queries`
-Find similar Cypher query examples based on a natural language question.
+Find similar query examples based on a natural language question.
 
 **Parameters:**
 - `question` (required): The natural language question to find similar examples for
@@ -52,22 +53,22 @@ Find similar Cypher query examples based on a natural language question.
 
 **Example Usage:**
 ```
-Use the find_similar_queries tool to find examples for: "How many products are there?"
+Use the find_similar_queries tool to find examples for: "Give me the list of CDEs in the lineage"
 ```
 
 ### 2. `add_training_example`
-Add a new question-Cypher query pair to the training dataset.
+Add a new question-query pair to the training dataset.
 
 **Parameters:**
 - `question` (required): The natural language question
-- `cypher_query` (required): The corresponding Cypher query
+- `query` (required): The corresponding query (Cypher, SPARQL, SQL, etc.)
 - `metadata` (optional): Additional metadata (domain, complexity, tags)
 
 **Example Usage:**
 ```
 Add a training example:
 Question: "Find users who bought expensive products"
-Cypher: "MATCH (u:User)-[:PURCHASED]->(p:Product) WHERE p.price > 1000 RETURN u"
+Query: "MATCH (u:User)-[:PURCHASED]->(p:Product) WHERE p.price > 1000 RETURN u"
 Metadata: {"domain": "user_analytics", "complexity": "medium"}
 ```
 
@@ -78,22 +79,43 @@ List all training examples in the dataset.
 - `limit` (optional): Maximum number of examples to return (default: 10, max: 100)
 - `domain` (optional): Filter by domain
 
+### 4. `find_duplicates`
+Find duplicate training examples based on question and query.
+
+**Parameters:** None
+
+**Example Usage:**
+```
+Use find_duplicates to identify duplicate training examples in your dataset.
+```
+
+### 5. `remove_duplicates`
+Remove duplicate training examples, keeping only the first occurrence of each unique question-query pair.
+
+**Parameters:**
+- `confirm` (optional): Set to true to confirm removal of duplicates (default: false)
+
+**Example Usage:**
+```
+Use remove_duplicates with confirm=true to clean up duplicate examples.
+```
+
 ## Default Training Examples
 
-The server comes with 5 default examples covering common Neo4j patterns:
+The server comes with 1 default example covering data lineage patterns:
 
-1. **User Management**: "How many users are in the system?"
-2. **Product Catalog**: "Find all products with high ratings"
-3. **User Activity**: "Show users who have made purchases in the last month"
-4. **Analytics**: "Find the most popular products by purchase count"
-5. **Recommendations**: "Get user recommendations based on similar users' purchases"
+1. **Data Lineage**: "Give me the list of CDEs in the lineage"
+   - Query: `MATCH (cde:CDE) RETURN cde.name, cde.description, cde.layer, cde.fqn ORDER BY cde.name`
+   - Domain: Data Lineage
+   - Complexity: simple
 
 ## Usage Workflow
 
-1. **Ask for similar queries**: When you need to write a Cypher query, use `find_similar_queries` with your natural language question
-2. **Get few-shot examples**: The server returns similar questions and their Cypher queries with similarity scores
-3. **Generate your query**: Use the examples as guidance to write your specific Cypher query
+1. **Ask for similar queries**: When you need to write a query, use `find_similar_queries` with your natural language question
+2. **Get few-shot examples**: The server returns similar questions and their queries with similarity scores
+3. **Generate your query**: Use the examples as guidance to write your specific query
 4. **Add new examples**: Use `add_training_example` to expand your training dataset with new patterns
+5. **Manage duplicates**: Use `find_duplicates` and `remove_duplicates` to keep your dataset clean
 
 ## Data Storage
 
@@ -104,30 +126,24 @@ The server comes with 5 default examples covering common Neo4j patterns:
 ## Example Interaction
 
 ```
-User: "I need to find all customers who made orders last week"
+User: "Show me all data elements with their descriptions"
 
 Agent: Let me find similar examples for you.
 [Uses find_similar_queries tool]
 
 Server Response:
-Found 2 similar examples for: "I need to find all customers who made orders last week"
+Found 1 similar examples for: "Show me all data elements with their descriptions"
 
-Example 1 (similarity: 0.847):
-Question: Show users who have made purchases in the last month
-Cypher: MATCH (u:User)-[:PURCHASED]->(o:Order) WHERE o.date > date() - duration('P30D') RETURN DISTINCT u
-Domain: user_activity
-Complexity: medium
+Example 1 (similarity: 0.823):
+Question: Give me the list of CDEs in the lineage
+Query: MATCH (cde:CDE) RETURN cde.name, cde.description, cde.layer, cde.fqn ORDER BY cde.name
+Domain: Data Lineage
+Complexity: simple
 
-Example 2 (similarity: 0.782):
-Question: Find the most popular products by purchase count
-Cypher: MATCH (p:Product)<-[:CONTAINS]-(o:Order) RETURN p.name, count(o) as purchase_count ORDER BY purchase_count DESC LIMIT 10
-Domain: analytics
-Complexity: medium
-
-Agent: Based on these examples, here's a Cypher query for finding customers who made orders last week:
-MATCH (c:Customer)-[:PLACED]->(o:Order) 
-WHERE o.date > date() - duration('P7D') 
-RETURN DISTINCT c
+Agent: Based on this example, here's a query for showing data elements with descriptions:
+MATCH (cde:CDE) 
+RETURN cde.name, cde.description 
+ORDER BY cde.name
 ```
 
 ## Troubleshooting

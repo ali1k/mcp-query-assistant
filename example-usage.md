@@ -1,6 +1,6 @@
-# Example Usage of Cypher Query Assistant
+# Example Usage of Query Assistant
 
-This document shows practical examples of how to use the Cypher Query Assistant MCP server.
+This document shows practical examples of how to use the Query Assistant MCP server.
 
 ## Prerequisites
 
@@ -34,24 +34,24 @@ You can also update your `package.json` to include the API key:
 
 ## Example 1: Finding Similar Queries
 
-**User Question**: "Show me all users who have admin privileges"
+**User Question**: "Show me all data elements in the system"
 
 **Command**: Use the `find_similar_queries` tool with the question.
 
 **Expected Response**:
 ```
-Found 1 similar examples for: "Show me all users who have admin privileges"
+Found 1 similar examples for: "Show me all data elements in the system"
 
-Example 1 (similarity: 0.756):
-Question: How many users are in the system?
-Cypher: MATCH (u:User) RETURN count(u) as user_count
-Domain: user_management
+Example 1 (similarity: 0.856):
+Question: Give me the list of CDEs in the lineage
+Query: MATCH (cde:CDE) RETURN cde.name, cde.description, cde.layer, cde.fqn ORDER BY cde.name
+Domain: Data Lineage
 Complexity: simple
 ```
 
 **Generated Query** (based on the example):
 ```cypher
-MATCH (u:User) WHERE u.role = 'admin' RETURN u
+MATCH (cde:CDE) RETURN cde.name, cde.description ORDER BY cde.name
 ```
 
 ## Example 2: Adding Training Data
@@ -60,71 +60,66 @@ MATCH (u:User) WHERE u.role = 'admin' RETURN u
 
 **Parameters**:
 - Question: "Find all orders placed today"
-- Cypher Query: "MATCH (o:Order) WHERE date(o.created_at) = date() RETURN o"
+- Query: "MATCH (o:Order) WHERE date(o.created_at) = date() RETURN o"
 - Metadata: `{"domain": "order_management", "complexity": "simple", "tags": ["date", "filter"]}`
 
 **Expected Response**:
 ```
 Successfully added training example with ID: example_1704285600000_abc123def
 Question: Find all orders placed today
-Cypher: MATCH (o:Order) WHERE date(o.created_at) = date() RETURN o
+Query: MATCH (o:Order) WHERE date(o.created_at) = date() RETURN o
 ```
 
 ## Example 3: Complex Query Assistance
 
-**User Question**: "Find customers who bought products from multiple categories"
+**User Question**: "Find data elements that are related to multiple layers"
 
 **Command**: Use `find_similar_queries` tool.
 
 **Expected Response**:
 ```
-Found 2 similar examples for: "Find customers who bought products from multiple categories"
+Found 1 similar examples for: "Find data elements that are related to multiple layers"
 
-Example 1 (similarity: 0.823):
-Question: Get user recommendations based on similar users' purchases
-Cypher: MATCH (u:User {id: $userId})-[:PURCHASED]->(p:Product)<-[:PURCHASED]-(similar:User)-[:PURCHASED]->(rec:Product) WHERE NOT (u)-[:PURCHASED]->(rec) RETURN rec, count(*) as score ORDER BY score DESC LIMIT 5
-Domain: recommendations
-Complexity: complex
-
-Example 2 (similarity: 0.789):
-Question: Find the most popular products by purchase count
-Cypher: MATCH (p:Product)<-[:CONTAINS]-(o:Order) RETURN p.name, count(o) as purchase_count ORDER BY purchase_count DESC LIMIT 10
-Domain: analytics
-Complexity: medium
+Example 1 (similarity: 0.734):
+Question: Give me the list of CDEs in the lineage
+Query: MATCH (cde:CDE) RETURN cde.name, cde.description, cde.layer, cde.fqn ORDER BY cde.name
+Domain: Data Lineage
+Complexity: simple
 ```
 
 **Generated Query** (based on examples):
 ```cypher
-MATCH (c:Customer)-[:PURCHASED]->(p:Product)-[:BELONGS_TO]->(cat:Category)
-WITH c, collect(DISTINCT cat.name) as categories
-WHERE size(categories) > 1
-RETURN c, categories, size(categories) as category_count
-ORDER BY category_count DESC
+MATCH (cde:CDE)-[:RELATED_TO]-(other:CDE)
+WHERE cde.layer <> other.layer
+WITH cde, collect(DISTINCT other.layer) as related_layers
+WHERE size(related_layers) > 1
+RETURN cde.name, cde.layer, related_layers, size(related_layers) as layer_count
+ORDER BY layer_count DESC
 ```
 
 ## Example 4: Domain-Specific Queries
 
-**Adding E-commerce Examples**:
+**Adding Data Lineage Examples**:
 
-1. **Product Search**:
+1. **Data Element Search**:
    ```
-   Question: "Find products with ratings above 4 stars"
-   Cypher: "MATCH (p:Product) WHERE p.rating > 4.0 RETURN p ORDER BY p.rating DESC"
-   Metadata: {"domain": "product_search", "complexity": "simple"}
-   ```
-
-2. **Customer Analytics**:
-   ```
-   Question: "Find customers who spent more than $1000 total"
-   Cypher: "MATCH (c:Customer)-[:PLACED]->(o:Order) WITH c, sum(o.total) as total_spent WHERE total_spent > 1000 RETURN c, total_spent ORDER BY total_spent DESC"
-   Metadata: {"domain": "customer_analytics", "complexity": "medium"}
+   Question: "Find data elements in the bronze layer"
+   Query: "MATCH (cde:CDE) WHERE cde.layer = 'bronze' RETURN cde.name, cde.description ORDER BY cde.name"
+   Metadata: {"domain": "data_lineage", "complexity": "simple"}
    ```
 
-3. **Inventory Management**:
+2. **Data Quality Analysis**:
    ```
-   Question: "Show products that are out of stock"
-   Cypher: "MATCH (p:Product) WHERE p.stock_quantity = 0 RETURN p"
-   Metadata: {"domain": "inventory", "complexity": "simple"}
+   Question: "Find data elements with quality issues"
+   Query: "MATCH (cde:CDE)-[:HAS_ISSUE]->(issue:QualityIssue) RETURN cde.name, collect(issue.type) as issues ORDER BY size(issues) DESC"
+   Metadata: {"domain": "data_quality", "complexity": "medium"}
+   ```
+
+3. **Lineage Tracing**:
+   ```
+   Question: "Show the full lineage path for a data element"
+   Query: "MATCH path = (source:CDE)-[:DERIVES_FROM*]->(target:CDE {name: $elementName}) RETURN path"
+   Metadata: {"domain": "data_lineage", "complexity": "complex"}
    ```
 
 ## Example 5: Using Metadata Filters
@@ -133,18 +128,54 @@ ORDER BY category_count DESC
 
 **Parameters**:
 - limit: 5
-- domain: "user_management"
+- domain: "Data Lineage"
 
 **Expected Response**:
 ```
-Training Examples (showing 1 of 5 total):
+Training Examples (showing 1 of 1 total):
 
 1. ID: example_1704285600000_xyz789
-   Question: How many users are in the system?
-   Cypher: MATCH (u:User) RETURN count(u) as user_count
-   Domain: user_management
+   Question: Give me the list of CDEs in the lineage
+   Query: MATCH (cde:CDE) RETURN cde.name, cde.description, cde.layer, cde.fqn ORDER BY cde.name
+   Domain: Data Lineage
    Complexity: simple
    Created: 2025-01-03T10:00:00.000Z
+```
+
+## Example 6: Managing Duplicates
+
+**Finding Duplicates**:
+
+**Command**: Use `find_duplicates` tool.
+
+**Expected Response**:
+```
+Found 2 duplicate groups with 3 duplicate entries:
+
+Duplicate Group 1:
+   Question: "Find all data elements"
+   Query: "MATCH (cde:CDE) RETURN cde"
+   Examples:
+   [KEEP] ID: example_1704285600000_abc123
+      Created: 2025-01-03T10:00:00.000Z
+   [DUPLICATE] ID: example_1704285700000_def456
+      Created: 2025-01-03T10:05:00.000Z
+   [DUPLICATE] ID: example_1704285800000_ghi789
+      Created: 2025-01-03T10:10:00.000Z
+
+Use 'remove_duplicates' tool with confirm=true to remove duplicates.
+```
+
+**Removing Duplicates**:
+
+**Command**: Use `remove_duplicates` tool with confirm=true.
+
+**Expected Response**:
+```
+Successfully removed 3 duplicate examples.
+Original count: 10
+New count: 7
+Removed IDs: example_1704285700000_def456, example_1704285800000_ghi789, example_1704285900000_jkl012
 ```
 
 ## Best Practices
@@ -156,6 +187,12 @@ Training Examples (showing 1 of 5 total):
 5. **Domain Organization**: Group related examples by domain for better organization
 
 ## Common Use Cases
+
+### Data Lineage & Governance
+- Data element discovery and cataloging
+- Lineage tracing and impact analysis
+- Data quality monitoring
+- Compliance and audit queries
 
 ### Graph Analytics
 - Node counting queries
