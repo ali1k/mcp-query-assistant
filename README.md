@@ -28,14 +28,31 @@ A Model Context Protocol (MCP) server that helps generate queries using semantic
      `/Users/alkhalili/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
    - Replace `your_openai_api_key_here` with your actual API key
 
-4. **Server Configuration**: The server is already configured in your MCP settings as:
+4. **Configure Data Directory (Optional)**:
+   - By default, data is stored in the `data/` folder relative to the project
+   - To use a custom data directory, you can:
+     - Set the `DATA_DIR` environment variable, or
+     - Use the `--data-dir` command line argument
+
+5. **Server Configuration**: The server is already configured in your MCP settings as:
    ```json
    "query-assistant": {
      "command": "npx",
      "args": ["mcp-query-assistant"],
      "env": {
-       "OPENAI_API_KEY": "your_openai_api_key_here"
+       "OPENAI_API_KEY": "your_openai_api_key_here",
+       "DATA_DIR": "/optional/custom/data/path"
      },
+     "disabled": false,
+     "autoApprove": []
+   }
+   ```
+
+   **Alternative with command line arguments**:
+   ```json
+   "query-assistant": {
+     "command": "npx",
+     "args": ["mcp-query-assistant", "--openai-key", "your_openai_api_key_here", "--data-dir", "/custom/data/path"],
      "disabled": false,
      "autoApprove": []
    }
@@ -119,9 +136,10 @@ The server comes with 1 default example covering data lineage patterns:
 
 ## Data Storage
 
-- **Training Data**: Stored in `data/training_data.json`
-- **Vector Index**: Stored in `data/vector_index.bin`
+- **Training Data**: Stored in `{DATA_DIR}/training_data.json` (default: `data/training_data.json`)
+- **Vector Index**: Stored in `{DATA_DIR}/vector_index.bin` (default: `data/vector_index.bin`)
 - **Embeddings**: Generated using OpenAI's `text-embedding-3-small` model (1536 dimensions)
+- **Data Directory**: Configurable via `DATA_DIR` environment variable or `--data-dir` command line argument
 
 ## Example Interaction
 

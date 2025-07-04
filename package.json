@@ -1,6 +1,6 @@
 {
   "name": "mcp-query-assistant",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A Model Context Protocol server that helps generate queries using semantic search over training examples",
   "type": "module",
   "main": "build/index.js",

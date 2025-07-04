@@ -23,13 +23,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
-function parseArguments(): { openaiKey?: string } {
+function parseArguments(): { openaiKey?: string; dataDir?: string } {
   const args = process.argv.slice(2);
-  const result: { openaiKey?: string } = {};
+  const result: { openaiKey?: string; dataDir?: string } = {};
   
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--openai-key' && i + 1 < args.length) {
       result.openaiKey = args[i + 1];
+      i++; // Skip the next argument as it's the value
+    } else if (args[i] === '--data-dir' && i + 1 < args.length) {
+      result.dataDir = args[i + 1];
       i++; // Skip the next argument as it's the value
     }
   }
@@ -40,7 +43,7 @@ function parseArguments(): { openaiKey?: string } {
 // Get OpenAI API key from command line arguments or environment variable
 const cliArgs = parseArguments();
 const OPENAI_API_KEY = cliArgs.openaiKey || process.env.OPENAI_API_KEY;
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = cliArgs.dataDir || process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const VECTOR_INDEX_PATH = path.join(DATA_DIR, 'vector_index.bin');
 const TRAINING_DATA_PATH = path.join(DATA_DIR, 'training_data.json');
 const EMBEDDING_DIMENSION = 1536; // OpenAI text-embedding-3-small dimension
