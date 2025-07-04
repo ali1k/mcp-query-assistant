@@ -31,8 +31,8 @@ A Model Context Protocol (MCP) server that helps generate queries using semantic
 4. **Server Configuration**: The server is already configured in your MCP settings as:
    ```json
    "query-assistant": {
-     "command": "node",
-     "args": ["/Users/alkhalili/Documents/Cline/MCP/mcp-query-assistant/build/index.js"],
+     "command": "npx",
+     "args": ["mcp-query-assistant"],
      "env": {
        "OPENAI_API_KEY": "your_openai_api_key_here"
      },
